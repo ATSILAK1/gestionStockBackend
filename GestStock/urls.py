@@ -17,6 +17,7 @@ urlpatterns = [
   #fournisseur Url 
   path('fournisseur',FrounisseurListCreation.as_view(),name='fournisseurCreation'),
   path('fournisseur/<int:pk>',FournisseurDetails.as_view(),name='fournisseurDetails'),
+  path('fournisseur/autocomplete', FournisseurAutocompleteView.as_view(), name='product-autocomplete'),
   #TransactionAchat Url 
   path('transactionachat',TranscationAchatListCreation.as_view(),name='transactionachatlist'),
   path('transactionachat/<int:pk>',TransactionAchatDetails.as_view(),name='transactionachatDetails'),

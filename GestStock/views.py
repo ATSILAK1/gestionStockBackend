@@ -24,7 +24,7 @@ class ProduitCreation(generics.ListCreateAPIView):
         try:
             return super().create(request, *args, **kwargs)   
         except IntegrityError:
-            return Response(data={"objet deja existant"},status=status.HTTP_400_BAD_REQUEST )
+            return Response(data={"erreur":"objet deja existant"},status=status.HTTP_400_BAD_REQUEST )
 
 class ProduitDetails(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProductSerializer
@@ -36,21 +36,16 @@ class ProduitAutocompleteView(generics.ListAPIView):
     serializer_class = ProductSerializer
 
     def get_queryset(self):
-        # Récupère le paramètre de requête 'query'
         query = self.request.query_params.get('nom', None)
 
-        # Filtre les produits dont le nom contient la chaîne de caractères recherchée (insensible à la casse)
         if query is not None:
             return Produit.objects.filter(nom__icontains=query)
 
-        # Si aucun paramètre de requête n'est fourni, renvoie un queryset vide
         return Produit.objects.none()
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
-
-        # Personnalise la réponse pour inclure les suggestions dans une clé `results`
         return Response({
             'results': serializer.data
         })
@@ -66,6 +61,24 @@ class FournisseurDetails(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = FournisseurSerializer
     queryset = Fournisseur.objects.all()
     lookup_field = "pk"
+
+class FournisseurAutocompleteView(generics.ListAPIView):
+    serializer_class = FournisseurSerializer
+    queryset = Fournisseur.objects.all()
+    lookup_field = "pk"
+    def get_queryset(self):
+        query = self.request.query_params.get('nomfournisseur', None)
+        if query is not None:
+            return Fournisseur.objects.filter(nomFournisseur__icontains=query)
+        return Fournisseur.objects.none()
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            'results': serializer.data
+        })
+
 
 ## Transaction_Achat view
 
@@ -108,4 +121,4 @@ class TransactionVenteDetails(generics.RetrieveUpdateDestroyAPIView):
         return Response({"success": "Transaction deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 
     
-        
+## Statistics

@@ -20,7 +20,15 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Produit 
         fields ='__all__'
 
+
+class FournisseurSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Fournisseur
+        fields= '__all__'
+
 class TransactionAchatSerializer(serializers.ModelSerializer):
+    productData = ProductSerializer(read_only=True , source='produitTransaction')
+    fournisseurData = FournisseurSerializer(read_only=True , source='fournisseurTransactionAchat')
     class Meta:
         model=TransactionAchat
         fields = '__all__'
@@ -31,15 +39,19 @@ class TransactionAchatSerializer(serializers.ModelSerializer):
             transaction_instance:TransactionAchat = super().create(validated_data)
             product:Produit = transaction_instance.produitTransaction
             product.quantiteStock += transaction_instance.quantiteTransaction
+            product.prix = transaction_instance.montantTransaction / transaction_instance.quantiteTransaction
             product.save()
         return transaction_instance
 
 
 
 class TransactionVenteSerializer(serializers.ModelSerializer):
+    productData = ProductSerializer(read_only=True, source='produitTransaction')
+
     class Meta:
         model=TransactionVente
         fields = '__all__'
+        read_only_fields = ['margeVente']
 
     def validate_quantiteTransaction(self, value):
         # Check that the quantity is positive
@@ -55,15 +67,18 @@ class TransactionVenteSerializer(serializers.ModelSerializer):
    
     def create(self, validated_data):
         with transaction.atomic():
+            produit = validated_data.get('produitTransaction')
+            quantite = validated_data.get('quantiteTransaction')
+            montant = validated_data.get('montantTransaction')
+
+
+            marge = montant - (quantite * produit.prix)
+            validated_data['margeVente'] = marge
             transaction_instance:TransactionVente = super().create(validated_data)
             product:Produit = transaction_instance.produitTransaction
             product.quantiteStock -= transaction_instance.quantiteTransaction
+            transaction_instance.margeVente = transaction_instance.montantTransaction - transaction_instance.quantiteTransaction * product.prix
             product.save()
-            return super().create(validated_data)
+            return transaction_instance
         
     
-
-class FournisseurSerializer(serializers.ModelSerializer):
-    class Meta:
-        model=Fournisseur
-        fields= '__all__'
