@@ -39,6 +39,14 @@ class User(AbstractBaseUser):
         return self.is_admin or self.is_superuser
 
 
+    def has_perm(self, perm, obj=None):
+        return self.is_superuser
+
+    def has_module_perms(self, app_label):
+        return self.is_superuser
+
+
+
 
 class UserSerializer(serializers.ModelSerializer): 
     total_pirogues = serializers.IntegerField(read_only = True)
@@ -62,6 +70,8 @@ class UserSerializer(serializers.ModelSerializer):
             instance.set_password(validated_data['password'])
         instance.save()
         return instance
+
+
 
     class Meta:
         model = User

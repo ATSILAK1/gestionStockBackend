@@ -8,7 +8,8 @@ from authentication import views
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [
-    
+  # Admin Dashboard
+  path('admin/', admin.site.urls),
   #Produit Url 
   path('produit',ProduitCreation.as_view(),name='produitCreation'),
   path('produit/<int:pk>',ProduitDetails.as_view(),name='ProduitUpdate'),
@@ -24,4 +25,6 @@ urlpatterns = [
   #TransactionVente Url 
   path('transactionvente',TranscationVenteListCreation.as_view(),name='transactionachatlist'),
   path('transactionvente/<int:pk>',TransactionVenteDetails.as_view(),name='transactionachatDetails'),
+  # Statistique
+  path('stats',StatisticView.as_view(),name='stats'),
 ]

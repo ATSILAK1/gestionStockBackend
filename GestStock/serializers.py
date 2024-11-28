@@ -56,11 +56,11 @@ class TransactionVenteSerializer(serializers.ModelSerializer):
     def validate_quantiteTransaction(self, value):
         # Check that the quantity is positive
         if value <= 0:
-            raise serializers.ValidationError("Quantity must be a positive integer.")
+            raise serializers.ValidationError("Quantite doit etre positive .")
         prod_pk = self.initial_data.get('produitTransaction')
         product = Produit.objects.get(pk = prod_pk)
         if product and value > product.quantiteStock:
-            raise serializers.ValidationError("Quantity cannot exceed available stock.")
+            raise serializers.ValidationError("Stock insuffisant.")
 
         return value
 

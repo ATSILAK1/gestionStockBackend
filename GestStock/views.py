@@ -1,7 +1,10 @@
-from django.http import HttpResponse
+from datetime import datetime, date, timedelta
+
+from django.db.models import Sum
+
 from django.db import IntegrityError
-from django.shortcuts import render
-from django.utils.regex_helper import contains
+
+from pymysql.times import TimeDelta
 from rest_framework import generics ,status 
 from rest_framework.response import Response
 from GestStock.serializers import ProductSerializer ,TransactionAchatSerializer , FournisseurSerializer , TransactionVenteSerializer
@@ -84,7 +87,7 @@ class FournisseurAutocompleteView(generics.ListAPIView):
 
 class TranscationAchatListCreation(generics.ListCreateAPIView):
     serializer_class = TransactionAchatSerializer
-    queryset = TransactionAchat.objects.all()
+    queryset = TransactionAchat.objects.all().order_by('-dateTransaction')
     lookup_field = 'pk'
 
 
@@ -105,7 +108,7 @@ class TransactionAchatDetails(generics.RetrieveUpdateDestroyAPIView):
 ## Transation Vente 
 class TranscationVenteListCreation(generics.ListCreateAPIView):
     serializer_class = TransactionVenteSerializer
-    queryset = TransactionVente.objects.all()
+    queryset = TransactionVente.objects.all().order_by('-dateTransaction')
     lookup_field = 'pk'
 
 class TransactionVenteDetails(generics.RetrieveUpdateDestroyAPIView):
@@ -122,3 +125,47 @@ class TransactionVenteDetails(generics.RetrieveUpdateDestroyAPIView):
 
     
 ## Statistics
+def GetTransactionBenefice():
+    querySet = TransactionVente.objects.all()
+    result = querySet.aggregate(Sum('margeVente'))
+    return result['margeVente__sum']
+def GetTransactionBeneficeDate(date_debut, date_fin):
+    querySet = TransactionVente.objects.filter(dateTransaction__range=(date_debut, date_fin))
+    result = querySet.aggregate(Sum('margeVente'))
+    return result['margeVente__sum']
+def GetTransactionVenteBestProduit():
+    querySet =  TransactionVente.objects.values('produitTransaction__nom')
+    result = querySet.annotate(quantite_vendu=Sum('quantiteTransaction')  ).order_by('-quantite_vendu')
+    return result
+def GetTransactionAchatProduit():
+    querySet =  TransactionAchat.objects.values('produitTransaction__nom')
+    result = querySet.annotate(quantite_achete=Sum('quantiteTransaction')  ).order_by('-quantite_achete')
+    return result
+def GetNombreTransactionVenteParJour(dateJour):
+    querySet = TransactionVente.objects.filter(dateTransaction__range=(dateJour, dateJour + timedelta(days=1)))
+    result = querySet.count()
+    return result
+
+def GetNombreTransactionAchatParJour(dateJour):
+    querySet = TransactionAchat.objects.filter(dateTransaction__range=(dateJour, dateJour + timedelta(days=1)))
+    result = querySet.count()
+    return result
+
+
+class StatisticView(APIView):
+    def get(self, request, *args, **kwargs):
+        try:
+            response = {
+                "marge_total": GetTransactionBenefice(),
+                "marge_total_par_jour": GetTransactionBeneficeDate(date_debut=date.today() , date_fin=date.today() +timedelta(days=1)),
+                "transaction_vente_par_jour":GetNombreTransactionVenteParJour(dateJour=date.today() ),
+                "transaction_achat_par_jour": GetNombreTransactionAchatParJour(dateJour=date.today() ),
+                "quantite_produit_vendu": GetTransactionVenteBestProduit(),
+                "quantite_produit_achete": GetTransactionAchatProduit(),
+
+
+            }
+            return Response(response , status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'Ereur':"Erreur Produite " , 'exepction ':str(e) }, status=status.HTTP_400_BAD_REQUEST)
+
